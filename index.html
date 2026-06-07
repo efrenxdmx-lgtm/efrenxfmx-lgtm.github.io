@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelUp — Mejora de Imágenes IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #7efff5;
+    --accent2: #ff6b6b;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background mesh */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(126,255,245,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,107,107,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.7s ease both;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.2rem, 8vw, 3.5rem);
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 10px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.3s, background 0.3s, transform 0.2s;
+    animation: fadeUp 0.7s 0.1s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover {
+    border-color: var(--accent);
+    background: rgba(126,255,245,0.03);
+    transform: translateY(-2px);
+  }
+
+  .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(126,255,245,0.06);
+    transform: scale(1.01);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: block;
+    filter: grayscale(0.3);
+  }
+
+  .upload-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .upload-sub {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  /* Preview section */
+  .preview-section {
+    display: none;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .preview-section.visible { display: block; }
+
+  .preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 28px 0;
+  }
+
+  .preview-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .preview-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .preview-card .placeholder {
+    width: 100%;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Scale selector */
+  .options-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .scale-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .scale-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(126,255,245,0.05);
+  }
+
+  /* Button */
+  .btn-enhance {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+    border: none;
+    border-radius: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0a0a0f;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .btn-enhance:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-enhance:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Status */
+  .status-box {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .status-box.visible { display: block; }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+
+  .status-text {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .status-text span {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Result */
+  .result-box {
+    display: none;
+    margin-top: 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .result-box.visible { display: block; }
+
+  .result-img {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+
+  .btn-download {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    margin-top: 14px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .btn-download:hover {
+    background: rgba(126,255,245,0.08);
+  }
+
+  .btn-reset {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .btn-reset:hover { color: var(--text); }
+
+  /* Error */
+  .error-box {
+    display: none;
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.3);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    color: var(--accent2);
+    font-size: 0.88rem;
+  }
+
+  .error-box.visible { display: block; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">PixelUp</div>
+    <p class="tagline">Mejora tus fotos con inteligencia artificial · Real-ESRGAN</p>
+  </header>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*">
+    <span class="upload-icon">🖼️</span>
+    <div class="upload-title">Sube tu imagen</div>
+    <div class="upload-sub">JPG, PNG, WebP · Toca aquí o arrastra</div>
+  </div>
+
+  <!-- Preview + options -->
+  <div class="preview-section" id="previewSection">
+
+    <div class="preview-grid">
+      <div class="preview-card">
+        <div class="preview-label">Original</div>
+        <img id="previewOrig" src="" alt="Original">
+      </div>
+      <div class="preview-card">
+        <div class="preview-label">Mejorada</div>
+        <div class="placeholder" id="resultPlaceholder">
+          <span style="font-size:1.5rem">✨</span>
+          <span>Aquí aparecerá</span>
+        </div>
+        <img id="previewResult" src="" alt="Resultado" style="display:none; width:100%; height:180px; object-fit:cover;">
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:10px;">Escala de mejora</div>
+      <div class="options-row" id="scaleOptions">
+        <button class="scale-btn" data-scale="2">2×</button>
+        <button class="scale-btn active" data-scale="4">4×</button>
+        <button class="scale-btn" data-scale="8">8×</button>
+      </div>
+    </div>
+
+    <button class="btn-enhance" id="btnEnhance">✨ Mejorar imagen</button>
+
+    <div class="status-box" id="statusBox">
+      <div class="spinner"></div>
+      <div class="status-text" id="statusText">Procesando con IA<span>...</span></div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="result-box" id="resultBox">
+      <a class="btn-download" id="btnDownload" download="pixelup-mejorada.png">⬇️ Descargar imagen mejorada</a>
+      <button class="btn-reset" id="btnReset">Mejorar otra imagen</button>
+    </div>
+
+  </div>
+
+  <footer>Powered by Replicate · Real-ESRGAN · Hecho con IA</footer>
+
+</div>
+
+<script>
+  const API_KEY = "r8_LkYe6oo8bCcaGtO2doijKnlu1lbhrIY4ZkzE1";
+  const MODEL = "nightmareai/real-esrgan:f121d640bd286e1fdc67f9799164c1d5be36ff74f7035b1c3a3a0ef0b0dca63a";
+
+  let selectedFile = null;
+  let selectedScale = 4;
+
+  const fileInput = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const previewSection = document.getElementById('previewSection');
+  const previewOrig = document.getElementById('previewOrig');
+  const btnEnhance = document.getElementById('btnEnhance');
+  const statusBox = document.getElementById('statusBox');
+  const statusText = document.getElementById('statusText');
+  const errorBox = document.getElementById('errorBox');
+  const resultBox = document.getElementById('resultBox');
+  const btnDownload = document.getElementById('btnDownload');
+  const btnReset = document.getElementById('btnReset');
+  const previewResult = document.getElementById('previewResult');
+  const resultPlaceholder = document.getElementById('resultPlaceholder');
+
+  // Scale buttons
+  document.querySelectorAll('.scale-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedScale = parseInt(btn.dataset.scale);
+    });
+  });
+
+  // Drag & drop
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewOrig.src = e.target.result;
+      previewSection.classList.add('visible');
+      uploadZone.style.display = 'none';
+      resetResult();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetResult() {
+    statusBox.classList.remove('visible');
+    errorBox.classList.remove('visible');
+    resultBox.classList.remove('visible');
+    previewResult.style.display = 'none';
+    resultPlaceholder.style.display = 'flex';
+    btnEnhance.disabled = false;
+  }
+
+  btnReset.addEventListener('click', () => {
+    selectedFile = null;
+    previewSection.classList.remove('visible');
+    uploadZone.style.display = '';
+    fileInput.value = '';
+    resetResult();
+  });
+
+  btnEnhance.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    btnEnhance.disabled = true;
+    statusBox.classList.add('visible');
+    errorBox.classList.remove('visible');
+    resultBox.classList.remove('visible');
+    setStatus('Subiendo imagen...');
+
+    try {
+      // Convert to base64
+      const base64 = await toBase64(selectedFile);
+      const mimeType = selectedFile.type || 'image/jpeg';
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      setStatus('Enviando a la IA...');
+
+      // Start prediction
+      const startRes = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          version: MODEL.split(':')[1],
+          input: {
+            image: dataUrl,
+            scale: selectedScale,
+            face_enhance: false
+          }
+        })
+      });
+
+      if (!startRes.ok) {
+        const err = await startRes.json();
+        throw new Error(err.detail || 'Error al iniciar el proceso');
+      }
+
+      const prediction = await startRes.json();
+      setStatus('Procesando con Real-ESRGAN...');
+
+      // Poll for result
+      const result = await pollPrediction(prediction.id);
+      setStatus('¡Listo!');
+      statusBox.classList.remove('visible');
+
+      // Show result
+      const outputUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      previewResult.src = outputUrl;
+      previewResult.style.display = 'block';
+      resultPlaceholder.style.display = 'none';
+      btnDownload.href = outputUrl;
+      resultBox.classList.add('visible');
+
+    } catch (err) {
+      statusBox.classList.remove('visible');
+      errorBox.classList.add('visible');
+      errorBox.textContent = '⚠️ ' + (err.message || 'Error desconocido. Intenta de nuevo.');
+      btnEnhance.disabled = false;
+    }
+  });
+
+  async function pollPrediction(id) {
+    const maxAttempts = 60;
+    for (let i = 0; i < maxAttempts; i++) {
+      await sleep(2000);
+      const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+        headers: { 'Authorization': `Token ${API_KEY}` }
+      });
+      const data = await res.json();
+
+      if (data.status === 'succeeded') return data;
+      if (data.status === 'failed') throw new Error('El modelo falló al procesar la imagen.');
+      setStatus(`Procesando... (${Math.round((i+1)/maxAttempts*100)}%)`);
+    }
+    throw new Error('Tiempo de espera agotado. Intenta con una imagen más pequeña.');
+  }
+
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setStatus(msg) {
+    statusText.textContent = msg;
+  }
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+</script>
+</body>
+      </html>
+      
